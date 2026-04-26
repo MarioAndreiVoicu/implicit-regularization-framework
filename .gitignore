@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+.venv/
+venv/
+env/
+ENV/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Streamlit / local app state
+.streamlit/secrets.toml
+
+# Generated experiment artifacts
+runs/
+sweeps/
+jobs/
+datasets_registry/
+analysis_views.json
+run_manager_views.json
+*.sqlite
+*.db
+
+# Local data / scratch files
+test-dataset.csv
+*.tmp
+*.bak
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+run_manager_meta.json
