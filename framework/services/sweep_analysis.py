@@ -49,6 +49,8 @@ def _expected_seed_count(metadata: dict[str, Any], sweep_spec: SweepSpec) -> int
 
 
 def _expected_cell_count(sweep_spec: SweepSpec) -> int:
+    if sweep_spec.kind == "2D" and sweep_spec.coupling == "paired" and sweep_spec.axes:
+        return int(len(sweep_spec.axes[0].values))
     return int(prod(len(axis.values) for axis in sweep_spec.axes))
 
 
@@ -67,11 +69,17 @@ def _cell_balance_frame(raw_df: pd.DataFrame, fields: tuple[str, ...], expected_
     return grouped
 
 
+def _metric_has_numeric_values(df: pd.DataFrame, metric: str) -> bool:
+    if metric not in df.columns:
+        return False
+    return bool(pd.to_numeric(df[metric], errors="coerce").notna().any())
+
+
 def aggregate_sweep_1d(raw_df: pd.DataFrame, field: str, metric_keys: list[str], *, expected_seed_count: int) -> pd.DataFrame:
     agg_spec: dict[str, tuple[str, Any]] = {"seed_count": ("seed", "nunique"), "run_count": ("run", "count")}
     present_metrics: list[str] = []
     for metric in metric_keys:
-        if metric not in raw_df.columns:
+        if not _metric_has_numeric_values(raw_df, metric):
             continue
         present_metrics.append(metric)
         agg_spec[f"{metric}_mean"] = (metric, "mean")
@@ -111,7 +119,7 @@ def aggregate_sweep_2d(raw_df: pd.DataFrame, field_x: str, field_y: str, metric_
     agg_spec: dict[str, tuple[str, Any]] = {"seed_count": ("seed", "nunique"), "run_count": ("run", "count")}
     present_metrics: list[str] = []
     for metric in metric_keys:
-        if metric not in raw_df.columns:
+        if not _metric_has_numeric_values(raw_df, metric):
             continue
         present_metrics.append(metric)
         agg_spec[f"{metric}_mean"] = (metric, "mean")
@@ -151,7 +159,7 @@ def _build_metric_options(problem_family: str | None, data_source: str | None, r
     options = sweep_metric_options(problem_family, data_source)
     if raw_df.empty:
         return options
-    return {key: label for key, label in options.items() if key in raw_df.columns}
+    return {key: label for key, label in options.items() if _metric_has_numeric_values(raw_df, key)}
 
 
 def _resolve_sweep_spec(metadata: dict[str, Any]) -> SweepSpec:

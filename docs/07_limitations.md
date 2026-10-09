@@ -52,6 +52,8 @@ A sweep only covers the values that were selected.
 
 If a sweep tests three learning rates, the result describes those three learning rates. It does not automatically describe the whole learning-rate range.
 
+For 2D sweeps, the heatmap only describes the selected full grid of axis values. It should not be read as a continuous surface unless the grid is dense enough and the experiment justifies that interpretation.
+
 Use the sweep definition to check exactly what was covered.
 
 ## Hardware and numeric behavior can matter
@@ -61,6 +63,12 @@ Device, dtype, and implementation details can affect numerical behavior.
 Small differences may appear across CPU, GPU, precision settings, or library versions. These differences matter most when runs are unstable, ill-conditioned, or close to a threshold.
 
 Use recorded metadata when exact reproducibility is important.
+
+## 2D heatmaps are simple summaries
+
+The app intentionally keeps 2D sweep support simple. A 2D sweep is shown as a full-grid heatmap of one selected aggregate metric. This is useful for inspecting interactions between two settings, but it does not replace deeper statistical analysis.
+
+Heatmaps should be interpreted together with seed counts, run counts, failures, and warnings. Missing or failed cells can change the meaning of the visual pattern.
 
 ## Failed runs are still information
 

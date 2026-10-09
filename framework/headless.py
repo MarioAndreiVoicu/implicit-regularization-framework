@@ -34,6 +34,7 @@ from framework.services.sweeps import (
     save_sweep_metadata,
 )
 from framework.storage.local import load_run, read_run_header, save_run
+from framework.services.serialization import json_dumps
 
 
 _NEW_RUN_FIELD_NAMES = {field.name for field in fields(NewRunRequest)}
@@ -225,7 +226,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         sweeps_dir=args.sweeps_dir,
         datasets_registry_dir=args.datasets_registry_dir,
     )
-    payload = json.dumps(summary, indent=2)
+    payload = json_dumps(summary, indent=2)
     if args.output:
         Path(args.output).write_text(payload, encoding="utf-8")
     print(payload)

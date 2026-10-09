@@ -26,6 +26,8 @@ from framework.services.new_run import (
     normalize_text_state_value,
 )
 from framework.services.ui_state import remove_conflicting_widget_defaults
+from framework.services.serialization import make_json_safe
+from framework.ui.formatting import format_display_sequence
 
 
 
@@ -178,7 +180,7 @@ def render_new_run_page(
             except Exception as exc:
                 custom_stats_error = str(exc)
         else:
-            custom_stats_error = "Select a registered dataset from the Datasets page first."
+            custom_stats_error = "Select a registered dataset from the Data Sources page first."
     st.divider()
     st.markdown("### Seeds")
     execution_mode_options = ["Single seed", "Multi-seed"]
@@ -449,7 +451,7 @@ def render_new_run_page(
 
     validation = service.validate_request(request)
     if execution_mode == "Multi-seed" and validation.seeds:
-        st.caption(f"Seeds: {validation.seeds}")
+        st.caption(f"Seeds: {format_display_sequence(validation.seeds)}")
     for error in validation.errors:
         st.error(error)
     for message in service.audit_request(request).messages:
@@ -484,7 +486,7 @@ def render_new_run_page(
 
     if len(execution.seeds) == 1:
         st.success(f"Run saved: {execution.saved_run_ids[0]}")
-        st.json(execution.items[0].summary)
+        st.json(make_json_safe(execution.items[0].summary))
         return
 
     if execution.is_complete_success:

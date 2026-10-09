@@ -6,13 +6,37 @@ from typing import Any
 import pandas as pd
 
 from framework.services.experiment_protocols import normalize_experiment_protocol
-from framework.services.local_runs import MATCH_AXIS_FIELDS
+from framework.services.local_runs import MATCH_AXIS_FIELDS, NON_EXPERIMENTAL_CONFIG_FIELDS
 
 CORE_CONTEXT_FIELDS = [
     "problem_family",
     "data_source",
     "measurement_type",
 ]
+
+PROTOCOL_AXIS_ALIASES = {
+    "lr": "learning_rate",
+    "learning_rate": "learning_rate",
+    "step_size": "learning_rate",
+    "learning_rate_schedule": "learning_rate_schedule",
+    "lr_schedule_type": "learning_rate_schedule",
+    "lr_decay_gamma": "learning_rate_schedule",
+    "lr_step_size": "learning_rate_schedule",
+    "lr_min": "learning_rate_schedule",
+    "steps": "training_budget",
+    "training_steps": "training_budget",
+    "training_budget": "training_budget",
+    "grad_norm_tol": "training_budget",
+    "objective_tol": "training_budget",
+    "seed": "random_seed",
+    "random_seed": "random_seed",
+    "batch_size": "batch_size",
+}
+
+
+def _normalize_axis_name(axis: Any) -> str:
+    key = str(axis or "").strip()
+    return PROTOCOL_AXIS_ALIASES.get(key, key)
 
 
 @dataclass(frozen=True)
@@ -46,7 +70,11 @@ def _normalize_value(value: Any) -> Any:
 
 
 def _config_diff_fields(reference_cfg: dict[str, Any], candidate_cfg: dict[str, Any]) -> list[str]:
-    fields = sorted(set(reference_cfg.keys()) | set(candidate_cfg.keys()))
+    fields = sorted(
+        field
+        for field in set(reference_cfg.keys()) | set(candidate_cfg.keys())
+        if field not in NON_EXPERIMENTAL_CONFIG_FIELDS
+    )
     return [
         field
         for field in fields
@@ -113,11 +141,13 @@ def _build_summary(*, core_mismatches: tuple[str, ...], protocol_conflicts: tupl
             "warning",
             f"Weak comparison: no change detected on varying axis '{varying_axis}'.",
         )
-    if secondary_confounds or seed_alignment != "matched":
+    seed_is_allowed_axis = varying_axis == "random_seed"
+    seed_is_confound = seed_alignment != "matched" and not seed_is_allowed_axis
+    if secondary_confounds or seed_is_confound:
         seed_note = ""
-        if paired_seed_expected:
+        if paired_seed_expected and seed_is_confound:
             seed_note = f" Seed alignment is {seed_alignment} under a paired-seed protocol."
-        elif seed_alignment != "matched":
+        elif seed_is_confound:
             seed_note = f" Seed alignment is {seed_alignment}."
         confounds = f" Secondary confounds: {', '.join(secondary_confounds)}." if secondary_confounds else ""
         return (
@@ -152,7 +182,7 @@ def audit_run_pair(
     reference_protocol = _extract_protocol(reference_metadata)
     candidate_protocol = _extract_protocol(candidate_metadata)
     protocol_axes = {
-        protocol.manipulated_factor
+        _normalize_axis_name(protocol.manipulated_factor)
         for protocol in (reference_protocol, candidate_protocol)
         if protocol is not None
     }
@@ -175,7 +205,7 @@ def audit_run_pair(
 
     seed_alignment = _seed_alignment(reference_cfg, candidate_cfg)
     paired_seed_expected = _paired_seed_expected(reference_protocol, candidate_protocol)
-    if paired_seed_expected and seed_alignment != "matched":
+    if paired_seed_expected and seed_alignment != "matched" and varying_axis != "random_seed":
         protocol_conflicts.append(
             f"paired seed policy requires matched seeds but alignment is '{seed_alignment}'"
         )

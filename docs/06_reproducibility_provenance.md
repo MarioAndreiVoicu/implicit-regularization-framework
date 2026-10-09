@@ -24,6 +24,14 @@ When comparing conditions, use a consistent seed policy. For example, a sweep ma
 
 The seed should be treated as part of the experiment, not as an incidental detail.
 
+## Data-source records
+
+The Data Sources page records and displays information for reusable observed-rating data sources.
+
+For MovieLens 100K, the app uses fixed built-in dataset, split, and preprocessing labels. For custom matrix-completion data, a triplets CSV can be uploaded or referenced by path, validated, previewed, fingerprinted, and registered. Registered custom datasets receive a dataset identifier and version label so later runs can refer to the same source.
+
+Synthetic PSD and synthetic matrix-completion data are not registered as reusable data-source records on this page; they are generated from the experiment configuration and seed policy.
+
 ## Sweep definition
 
 A sweep records how multiple runs were generated from a shared setup.
@@ -33,10 +41,11 @@ The sweep definition should show:
 - the base configuration
 - the fields that varied
 - the values used for each varied field
+- whether the sweep was 1D or full-grid 2D
 - the runs created from the sweep
 - the status of each run
 
-This makes it possible to inspect what changed across the sweep and which settings were shared.
+This makes it possible to inspect what changed across the sweep and which settings were shared. For 2D sweeps, the saved definition also determines the heatmap axes and their declared value order.
 
 ## Run metadata
 
@@ -70,6 +79,7 @@ They may include:
 - configuration files
 - reconstructed matrices or learned factors
 - comparison tables
+- sweep aggregate tables
 - exported bundles or downloaded outputs
 
 Artifacts should be interpreted together with the configuration and metadata that produced them.
@@ -110,7 +120,7 @@ An export is most useful when it includes enough context to reconstruct the resu
 
 To reproduce a result, start from the saved configuration and use the same seed policy.
 
-Exact reproducibility may also depend on device, dtype, library versions, and hardware behavior. When those details matter, use the recorded metadata to check whether the rerun environment matches the original run.
+Exact reproducibility may also depend on device, dtype, library versions, and hardware behavior. When those details matter, use the recorded metadata to check whether the rerun environment matches the original run. The clean thesis archive does not include local runtime folders such as saved runs, sweeps, or registered custom datasets; those are regenerated locally when the app is used.
 
 The app aims to make reruns traceable, not to guarantee bit-for-bit identical results across all hardware.
 

@@ -1,6 +1,7 @@
 import pandas as pd
 
 from framework.services.local_runs import (
+    config_diff,
     build_match_key,
     find_matched_runs,
     matched_config_diff,
@@ -92,3 +93,39 @@ def test_matched_final_metrics_table_has_deltas():
     df = matched_final_metrics_table(ref_summary, cand_summary, metrics=["final_objective", "final_rel_recon_error"])
     assert list(df["metric"]) == ["final_objective", "final_rel_recon_error"]
     assert float(df.iloc[0]["delta"]) == -0.5
+
+
+
+
+def test_config_diffs_ignore_provenance_group_ids():
+    reference_cfg = {**BASE_CFG, "seed_group_id": "seedgrp_ref", "group_id": "sweep_ref", "sweep_group_id": "sweep_a"}
+    candidate_cfg = {**BASE_CFG, "lr": 0.2, "seed_group_id": "seedgrp_candidate", "group_id": "sweep_candidate", "sweep_group_id": "sweep_b"}
+
+    free_diff = config_diff([reference_cfg, candidate_cfg])
+    matched_diff = matched_config_diff(reference_cfg, candidate_cfg, "learning_rate")
+
+    assert set(free_diff["field"]) == {"lr"}
+    assert set(matched_diff["field"]) == {"lr"}
+
+
+def test_match_axes_split_learning_rate_schedule_budget_seed_and_batch_size():
+    lr_diff = matched_config_diff(BASE_CFG, {**BASE_CFG, "lr": 0.2}, "learning_rate")
+    lr_allowed = {row["field"]: row["allowed_change"] for _, row in lr_diff.iterrows()}
+    assert lr_allowed["lr"] is True
+
+    schedule_diff = matched_config_diff(BASE_CFG, {**BASE_CFG, "lr_schedule_type": "cosine", "lr_min": 1e-5}, "learning_rate_schedule")
+    schedule_allowed = {row["field"]: row["allowed_change"] for _, row in schedule_diff.iterrows()}
+    assert schedule_allowed["lr_schedule_type"] is True
+    assert schedule_allowed["lr_min"] is True
+
+    budget_diff = matched_config_diff(BASE_CFG, {**BASE_CFG, "steps": 250}, "training_budget")
+    budget_allowed = {row["field"]: row["allowed_change"] for _, row in budget_diff.iterrows()}
+    assert budget_allowed["steps"] is True
+
+    seed_diff = matched_config_diff(BASE_CFG, {**BASE_CFG, "seed": 99}, "random_seed")
+    seed_allowed = {row["field"]: row["allowed_change"] for _, row in seed_diff.iterrows()}
+    assert seed_allowed["seed"] is True
+
+    batch_diff = matched_config_diff(BASE_CFG, {**BASE_CFG, "batch_size": 32}, "batch_size")
+    batch_allowed = {row["field"]: row["allowed_change"] for _, row in batch_diff.iterrows()}
+    assert batch_allowed["batch_size"] is True

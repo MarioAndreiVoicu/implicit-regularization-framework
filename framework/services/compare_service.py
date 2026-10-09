@@ -104,6 +104,59 @@ class FrontierPointsResult:
     complexity_options: list[str]
 
 
+
+
+def _unique_preserve_order(values: list[str]) -> list[str]:
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for value in values:
+        value = str(value)
+        if value and value not in seen:
+            seen.add(value)
+            ordered.append(value)
+    return ordered
+
+
+def _numeric_metric_columns(df: pd.DataFrame, *, excluded: set[str] | None = None) -> set[str]:
+    excluded = excluded or set()
+    if not isinstance(df, pd.DataFrame) or df.empty:
+        return set()
+    cols: set[str] = set()
+    for col in df.columns:
+        if col in excluded:
+            continue
+        values = pd.to_numeric(df[col], errors="coerce")
+        if values.notna().any():
+            cols.add(str(col))
+    return cols
+
+
+def _common_trajectory_metrics(items: list[dict]) -> list[str]:
+    if not items:
+        return []
+    common: set[str] | None = None
+    for item in items:
+        numeric = _numeric_metric_columns(item.get("metrics"), excluded={"step", "epoch", "iteration"})
+        common = numeric if common is None else common & numeric
+    if not common:
+        return []
+
+    candidates: list[str] = []
+    for item in items:
+        candidates.extend(metrics_for_config(item.get("config"), "trajectory"))
+    candidates.extend([
+        "val_rmse",
+        "test_rmse",
+        "train_rmse",
+        "rel_recon_error",
+        "relative_reconstruction_error",
+        "objective",
+        "loss",
+        "gradient_norm",
+    ])
+    ordered = _unique_preserve_order([*candidates, *sorted(common)])
+    return [metric for metric in ordered if metric in common]
+
 class CompareService:
     def __init__(
         self,
@@ -133,12 +186,7 @@ class CompareService:
             summary_rows.append(row)
         summary_df = pd.DataFrame(summary_rows)
         diff_df = self._config_diff_fn([item["config"] for item in chosen]) if chosen else pd.DataFrame()
-        if chosen and len({item["config"].get("problem_family") for item in chosen}) != 1:
-            overlay_metrics = ["objective", "rel_recon_error", "gradient_norm"]
-        elif chosen:
-            overlay_metrics = metrics_for_config(chosen[0]["config"], "trajectory")
-        else:
-            overlay_metrics = []
+        overlay_metrics = _common_trajectory_metrics(chosen)
         overlay_items = [
             (item["run_id"], item["config"], item["summary"], item["metrics"]) for item in chosen
         ]
@@ -281,6 +329,21 @@ class CompareService:
         return MatchedCompareContext(
             labels=[item["run_id"] for item in items],
             varying_axis_options=match_axis_options(),
+        )
+
+    def selected_pair_audit(self, *, reference_run_id: str, candidate_run_id: str, varying_axis: str):
+        loaded_runs = self._load_items(include_metrics=False)
+        by_run_id = {item["run_id"]: item for item in loaded_runs}
+        reference = by_run_id.get(reference_run_id)
+        candidate = by_run_id.get(candidate_run_id)
+        if reference is None or candidate is None:
+            return None
+        return audit_run_pair(
+            reference["config"],
+            candidate["config"],
+            varying_axis,
+            reference_metadata=reference.get("metadata"),
+            candidate_metadata=candidate.get("metadata"),
         )
 
     def matched_compare_result(self, *, reference_run_id: str, varying_axis: str, strict_exact_match: bool, candidate_run_id: str | None = None) -> MatchedCompareResult | None:

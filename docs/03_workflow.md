@@ -4,7 +4,15 @@ This page explains the usual path through the app: create a run, inspect the res
 
 The exact workflow depends on the experiment, but most work follows the same sequence.
 
-## 1. Start with a single run
+## 1. Check data sources when needed
+
+If the experiment uses MovieLens 100K or a custom triplets CSV file, start in **Data Sources**.
+
+Use this page to inspect available data sources, validate a custom CSV file, preview its rows and statistics, and register it for later matrix-completion runs. A custom CSV should represent observed triplets such as `row,col,value` or equivalent aliases like `user,item,rating`.
+
+Synthetic PSD and synthetic matrix-completion problems do not need to be registered here; they are configured directly from the experiment controls.
+
+## 2. Start with a single run
 
 Use a single run to check that the configuration behaves as expected.
 
@@ -14,7 +22,7 @@ After the run finishes, inspect the result. Check the training curve, final metr
 
 A single run is useful for debugging and orientation. It is usually not enough to support a comparison claim by itself.
 
-## 2. Review the run configuration
+## 3. Review the run configuration
 
 Every run should be traceable back to the configuration that produced it.
 
@@ -35,21 +43,25 @@ Look especially at:
 
 If a setting differs unexpectedly, treat that difference as part of the result until the run is corrected or excluded.
 
-## 3. Create a sweep
+## 4. Create a sweep
 
 Once the single-run setup looks correct, create a sweep from the same base configuration.
 
-A sweep varies selected fields across multiple runs. Use it when you want to test how results change across optimizers, learning rates, seeds, initialization scales, parameterizations, regularization settings, or other controlled choices.
+A sweep varies selected fields across multiple runs. Use it when you want to test how results change across optimizers, learning rates, seeds, initialization scales, parameterizations, training budgets, regularization settings, or other controlled choices.
 
 Start small. A narrow sweep is easier to interpret than a broad one.
 
+A 1D sweep varies one field and is read as a curve. A full-grid 2D sweep varies two fields and is read as a heatmap, where each cell represents one pair of selected axis values. The app intentionally keeps 2D support simple: it is for full-grid interaction checks, not arbitrary coupled-pair trajectories.
+
 The sweep should make the varied fields clear. Everything else should remain fixed unless it is intentionally part of the sweep.
 
-## 4. Inspect the sweep in Results
+## 5. Inspect the sweep in Results
 
 After the sweep finishes, inspect it in Results.
 
 Use the sweep view to see how metrics changed across the varied fields. This is where patterns become visible across multiple runs.
+
+For 1D sweeps, read the selected aggregate metric as a curve across the varied field. For full-grid 2D sweeps, read the selected aggregate metric as a heatmap. Check the seed-balance and run-status summaries before interpreting either plot.
 
 Depending on the sweep, you may look for:
 
@@ -61,15 +73,17 @@ Depending on the sweep, you may look for:
 
 The goal is to understand how the sweep behaved, not just to find the best row.
 
-## 5. Use Compare for individual runs
+## 6. Use Compare for individual runs
 
 Use Compare when you want to inspect selected runs directly.
 
 Compare is for run-level comparison. It is useful when you want to place two or more specific runs side by side and inspect their configurations, metrics, and artifacts.
 
+When exactly two runs are selected, Compare can audit whether the comparison is controlled. Use **Auto-detect** for the expected change in most cases. Common axes such as optimizer, learning rate, parameterization, regularization, initialization, training budget, and random seed are shown first; more technical axes are available under advanced controls.
+
 For sweep-level inspection, use Results first. For selected run-level details, use Compare.
 
-## 6. Export artifacts
+## 7. Export artifacts
 
 After inspecting the run or sweep, export the artifacts you need from Results or Compare.
 
@@ -89,7 +103,13 @@ Run once, inspect the output, adjust the configuration if needed.
 
 Use this when testing one main factor.
 
-Keep everything fixed except the field being tested.
+Keep everything fixed except the field being tested. The Results page shows this as a curve over the varied field.
+
+### Full-grid 2D sweep
+
+Use this when testing whether one factor changes the effect of another factor.
+
+Keep everything fixed except the two selected sweep fields. The Results page shows this as a heatmap. Interpret it as an interaction view, not as two independent one-factor sweeps.
 
 ### Seeded sweep
 

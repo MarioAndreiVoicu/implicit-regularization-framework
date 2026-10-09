@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+from framework.services.serialization import json_dumps
+
 ANALYSIS_VIEWS_PATH = Path('analysis_views.json')
 
 
@@ -33,7 +35,7 @@ def load_analysis_views() -> dict[str, Any]:
 
 
 def save_analysis_views(meta: dict[str, Any]) -> None:
-    ANALYSIS_VIEWS_PATH.write_text(json.dumps(meta, indent=2), encoding='utf-8')
+    ANALYSIS_VIEWS_PATH.write_text(json_dumps(meta, indent=2), encoding='utf-8')
 
 
 def upsert_analysis_view(meta: dict[str, Any], namespace: str, name: str, state: dict[str, Any]) -> dict[str, Any]:

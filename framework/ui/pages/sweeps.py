@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import json
-
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -9,6 +7,8 @@ import numpy as np
 import streamlit as st
 
 from framework.services.ui_state import remove_conflicting_widget_defaults
+from framework.services.serialization import json_dumps
+from framework.ui.formatting import format_display_sequence
 
 from framework.core.device import (
     list_device_preferences,
@@ -204,9 +204,7 @@ def _render_axis_values_editor(
             with cols[3]:
                 spacing = _selectbox(f"{meta['label']} spacing", spacing_options, index=spacing_options.index(default_spacing), key=f"{key_prefix}_{field}_spacing")
             values = generate_numeric_sweep_values(start=float(start), stop=float(stop), num=count, spacing=str(spacing), as_int=(value_type == "int"))
-        preview = ", ".join(str(item) for item in values[:8])
-        if len(values) > 8:
-            preview += ", ..."
+        preview = format_display_sequence(values, limit=8)
         st.caption(f"Values: {preview}")
         return list(values), None
     except Exception as exc:
@@ -222,9 +220,7 @@ def _preview_coupled_cells(field_x: str, x_vals: list[object], field_y: str, y_v
 
 
 def _format_sweep_values(values: list[object], *, limit: int = 12) -> str:
-    shown = [str(value) for value in list(values)[:limit]]
-    suffix = "" if len(values) <= limit else ", ..."
-    return ", ".join(shown) + suffix
+    return format_display_sequence(values, limit=limit)
 
 
 def _render_sweep_values_preview(label: str, field_values: dict[str, list[object]], *, coupling: str = "grid") -> None:
@@ -332,10 +328,8 @@ def _render_sweep_axis_setup(*, problem_family: str, data_source: str, sweep_kin
         _render_sweep_values_preview("Preset grid values", {field_x: list(x_vals), field_y: list(y_vals)}, coupling=coupling)
     else:
         catalog = _sweep_field_catalog(problem_family, data_source, allow_2d=True)
-        relation_options = ["Full grid", "Coupled pairs"]
-        _normalize_choice_state("sweep_2d_relation", relation_options, default="Full grid")
-        relation = _radio("Configuration layout", relation_options, horizontal=True, key="sweep_2d_relation")
-        coupling = "paired" if relation == "Coupled pairs" else "grid"
+        coupling = "grid"
+        st.caption("2D sweeps use a full grid so the result can be shown as a heatmap.")
         x_options = list(catalog.keys())
         _normalize_choice_state("sweep_2d_x_field", x_options, default=x_options[0])
         field_x = _selectbox(
@@ -368,11 +362,7 @@ def _render_sweep_axis_setup(*, problem_family: str, data_source: str, sweep_kin
             custom_error = x_error
         elif y_error:
             custom_error = y_error
-        elif coupling == "paired" and len(x_vals) != len(y_vals):
-            custom_error = "Coupled pairs require X and Y to have the same number of values."
-        if coupling == "paired":
-            _preview_coupled_cells(field_x, list(x_vals), field_y, list(y_vals))
-        preset = f"Custom 2D ({coupling}): {field_x} vs {field_y}"
+        preset = f"Custom 2D grid: {field_x} vs {field_y}"
 
     return {
         "kind": "2D",
@@ -393,7 +383,10 @@ def _safe_std(series: pd.Series) -> float:
 
 
 def _aggregate_1d(df: pd.DataFrame, sweep_field: str, metric_keys: list[str]) -> pd.DataFrame:
-    return aggregate_sweep_1d(df, sweep_field, metric_keys)
+    expected_seed_count = 1
+    if "seed" in df.columns and not df.empty:
+        expected_seed_count = max(int(pd.Series(df["seed"]).dropna().nunique()), 1)
+    return aggregate_sweep_1d(df, sweep_field, metric_keys, expected_seed_count=expected_seed_count)
 
 
 def _aggregate_2d(df: pd.DataFrame, field_x: str, field_y: str, metric_keys: list[str]) -> pd.DataFrame:
@@ -421,6 +414,9 @@ def _plot_1d_aggregate(agg: pd.DataFrame, sweep_field: str, metric: str, show_va
 
 
 def _render_2d_phase_diagram(raw_df: pd.DataFrame, field_x: str, field_y: str, metric_options: dict[str, str], key_prefix: str) -> None:
+    if not metric_options:
+        st.info("No numeric sweep metrics available for the 2D heatmap.")
+        return
     status_values = sorted(str(s) for s in raw_df["status"].dropna().unique().tolist()) if "status" in raw_df.columns else []
     cols = st.columns([1.2, 1.0, 1.2])
     with cols[0]:
@@ -565,7 +561,7 @@ def _render_saved_sweep_views(service: SweepsPageService) -> None:
 
         st.download_button(
             "Download current view spec (.json)",
-            data=json.dumps(current_state, indent=2),
+            data=json_dumps(current_state),
             file_name="sweep_view.json",
             mime="application/json",
             key="sweep_download_current_view",
@@ -733,7 +729,7 @@ def render_sweeps_page(
             except Exception as exc:
                 custom_stats_error = str(exc)
         else:
-            custom_stats_error = "Select a registered dataset from the Datasets page first."
+            custom_stats_error = "Select a registered dataset from the Data Sources page first."
 
     noncommutativity_level = 1.0
     coherence_level = float(default_request.coherence_level)
@@ -980,7 +976,7 @@ def render_sweeps_page(
     )
 
     seeds = service.resolve_seeds(base_request)
-    st.caption(f"Seeds: {seeds}")
+    st.caption(f"Seeds: {format_display_sequence(seeds)}")
 
     st.divider()
     st.markdown("### Preview / launch")

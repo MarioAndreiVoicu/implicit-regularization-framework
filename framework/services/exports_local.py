@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import io
-import json
 import zipfile
 from pathlib import Path
 from typing import Iterable, Iterator
@@ -10,6 +9,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 from framework.services.local_runs import x_col
+from framework.services.serialization import json_dumps
 from framework.storage.local import load_run
 
 
@@ -105,10 +105,10 @@ def ensure_report_and_plots(
   <h1>Run report</h1>
 
   <h2>Summary</h2>
-  <pre>{json.dumps(summary, indent=2)}</pre>
+  <pre>{json_dumps(summary)}</pre>
 
   <h2>Config</h2>
-  <pre>{json.dumps(cfg, indent=2)}</pre>
+  <pre>{json_dumps(cfg)}</pre>
 
   <h2>Plots</h2>
   <div><img src=\"../plots/{loss_metric}.png\" alt=\"{loss_metric}\"></div>
@@ -230,7 +230,7 @@ def build_sweep_bundle_zip_bytes(
 ) -> bytes:
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", compression=zipfile.ZIP_DEFLATED) as zf:
-        zf.writestr(f"{group_id}/meta.json", json.dumps(sweep_meta or {"group_id": group_id}, indent=2))
+        zf.writestr(f"{group_id}/meta.json", json_dumps(sweep_meta or {"group_id": group_id}))
         zf.writestr(f"{group_id}/summary.csv", sweep_summary_df.to_csv(index=False))
 
         if (

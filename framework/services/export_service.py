@@ -4,12 +4,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Iterable
 import io
-import json
 import zipfile
 
 import pandas as pd
 
 from framework.services.sweep_analysis import SweepAnalysisView
+from framework.services.serialization import json_dumps
 from framework.services.sweep_repository import SweepRepository
 
 
@@ -109,7 +109,7 @@ class LocalExportService:
             for item in zin.infolist():
                 zout.writestr(item, zin.read(item.filename))
             for arcname, payload in (json_entries or {}).items():
-                zout.writestr(arcname, json.dumps(payload, indent=2))
+                zout.writestr(arcname, json_dumps(payload))
             for arcname, df in (csv_entries or {}).items():
                 frame = df if isinstance(df, pd.DataFrame) else pd.DataFrame(df)
                 zout.writestr(arcname, frame.to_csv(index=False))

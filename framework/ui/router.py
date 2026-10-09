@@ -24,7 +24,7 @@ def render_page(page: str, deps: dict) -> None:
         render_compare_page(service=deps["compare_service"])
         return
 
-    if page == "Datasets":
+    if page in {"Data Sources", "Data & Problems", "Datasets"}:
         render_datasets_page(service=deps["datasets_service"])
         return
 

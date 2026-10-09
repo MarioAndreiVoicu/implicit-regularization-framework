@@ -333,6 +333,16 @@ Projection distance for the right subspace.
 **mean_subspace_projection_distance**  
 Average of left and right projection distance.
 
+## Sweep fields and compare axes
+
+Sweeps vary one or two selected fields while keeping the remaining configuration fixed. A 1D sweep has one varied field. A full-grid 2D sweep has two varied fields and is shown as a heatmap in Results.
+
+Compare audits use expected-change axes rather than raw field names. Common axes include optimizer, learning rate, parameterization, explicit regularization, initialization, training budget, and random seed. More technical axes include learning-rate schedule, batch size, stopping mode, PSD regime, noncommutativity level, coherence level, sampling regime, matrix-completion spectrum, and factor-balance settings.
+
+Some compare axes map to one field, such as `learning_rate` mapping to `lr`. Others map to several fields. For example, `learning_rate_schedule` includes `lr_schedule_type`, `lr_decay_gamma`, `lr_step_size`, and `lr_min`; `training_budget` includes `steps`, `grad_norm_tol`, and `objective_tol`; `optimizer` includes optimizer-family hyperparameters such as momentum, Adam parameters, and preconditioner epsilon.
+
+Bookkeeping fields such as `group_id` and `seed_group_id` are provenance fields. They should not by themselves make an otherwise controlled comparison invalid.
+
 ## Sweep metrics
 
 Sweep views use selected summary metrics to compare runs.
@@ -354,7 +364,9 @@ For real observed-rating data, common examples include:
 - test RMSE at best validation step
 - final objective
 
-Availability depends on problem family, data source, and metric logging settings.
+Availability depends on problem family, data source, and metric logging settings. Metrics that are unavailable or entirely missing for a sweep are not offered as plot choices.
+
+For 1D sweeps, aggregate metrics are shown as curves over the varied field. For full-grid 2D sweeps, aggregate metrics are shown as heatmaps over the two varied fields. In both cases, the aggregate values should be read together with seed counts, run counts, and warning/failure status.
 
 ## Next steps
 

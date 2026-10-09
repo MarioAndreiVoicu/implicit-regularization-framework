@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from hashlib import sha256
 from typing import Any, Callable
 
 import pandas as pd
@@ -9,6 +10,8 @@ from framework.core.models import RunSpec
 from framework.services.compare_service import CompareService
 from framework.services.custom_dataset_registry import LocalCustomDatasetRegistry
 from framework.services.data_sources import (
+    DEFAULT_CUSTOM_TRIPLETS_PREPROCESSING_VERSION,
+    DEFAULT_CUSTOM_TRIPLETS_SPLIT_VERSION,
     DEFAULT_MOVIELENS_DATASET_VERSION,
     DEFAULT_MOVIELENS_PREPROCESSING_VERSION,
     DEFAULT_MOVIELENS_SPLIT_VERSION,
@@ -105,16 +108,32 @@ class CustomDatasetsPageService:
     def register_triplets_csv(self, path: str) -> CustomDatasetRecord:
         return self._dataset_registry.register_triplets_csv(path)
 
+    def stage_uploaded_triplets_csv(self, filename: str, content: bytes) -> str:
+        filename = str(filename or "uploaded_triplets.csv").strip() or "uploaded_triplets.csv"
+        suffix = Path(filename).suffix.lower() or ".csv"
+        stem = Path(filename).stem or "uploaded_triplets"
+        safe_stem = "".join(ch if ch.isalnum() or ch in ("-", "_") else "_" for ch in stem).strip("._") or "uploaded_triplets"
+        digest = sha256(content).hexdigest()[:12]
+        uploads_dir = self._dataset_registry.registry_dir / "uploaded_sources"
+        uploads_dir.mkdir(parents=True, exist_ok=True)
+        staged = uploads_dir / f"{safe_stem}_{digest}{suffix}"
+        staged.write_bytes(content)
+        return str(staged.resolve())
+
     def get_record(self, dataset_id: str) -> CustomDatasetRecord:
         return self._dataset_registry.get(dataset_id)
 
     def list_builtin_sources(self) -> list[dict[str, Any]]:
+        """Return fixed built-in data sources for backwards-compatible callers."""
+        return self.list_dataset_sources()
+
+    def list_dataset_sources(self) -> list[dict[str, Any]]:
         return [
             {
                 "label": "MovieLens 100K",
                 "problem_family": "matrix_completion",
                 "data_source": "movielens_100k",
-                "kind": "real",
+                "kind": "dataset",
                 "description": "Built-in real matrix-completion dataset with fixed dimensions and default split/provenance.",
                 "dataset_version": DEFAULT_MOVIELENS_DATASET_VERSION,
                 "split_version": DEFAULT_MOVIELENS_SPLIT_VERSION,
@@ -122,6 +141,16 @@ class CustomDatasetsPageService:
                 "stats": movielens_100k_stats(),
             },
         ]
+
+    def custom_registry_summary(self) -> dict[str, Any]:
+        records = self.list_records()
+        return {
+            "data_source": "custom_triplets_csv",
+            "registered_datasets": len(records),
+            "dataset_version_template": "custom_triplets_csv:<registered-dataset-id>",
+            "split_version": DEFAULT_CUSTOM_TRIPLETS_SPLIT_VERSION,
+            "preprocessing_version": DEFAULT_CUSTOM_TRIPLETS_PREPROCESSING_VERSION,
+        }
 
     def validate_triplets_csv(self, path: str, *, preview_rows: int = 8) -> dict[str, Any]:
         resolved = Path(path).expanduser().resolve()

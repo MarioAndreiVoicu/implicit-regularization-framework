@@ -8,6 +8,7 @@ from typing import Any
 import pandas as pd
 
 from framework.services.local_runs import list_run_dirs
+from framework.services.serialization import json_dumps
 from framework.storage.local import read_run_header
 
 
@@ -39,7 +40,7 @@ def _read_json(path: Path, default: Any) -> Any:
 
 
 def _write_json(path: Path, obj: Any) -> None:
-    path.write_text(json.dumps(obj, indent=2), encoding="utf-8")
+    path.write_text(json_dumps(obj, indent=2), encoding="utf-8")
 
 
 def tags_str_to_list(tags_text: str) -> list[str]:
@@ -317,11 +318,11 @@ def apply_run_filters(df_all: pd.DataFrame, state: dict) -> pd.DataFrame:
 
     q_name = str(state.get("q_name", "") or "").strip().lower()
     if q_name and "run_name" in df.columns:
-        df = df[df["run_name"].astype(str).str.lower().str.contains(q_name, na=False)]
+        df = df[df["run_name"].astype(str).str.lower().str.contains(q_name, na=False, regex=False)]
 
     q_notes = str(state.get("q_notes", "") or "").strip().lower()
     if q_notes and "notes" in df.columns:
-        df = df[df["notes"].astype(str).str.lower().str.contains(q_notes, na=False)]
+        df = df[df["notes"].astype(str).str.lower().str.contains(q_notes, na=False, regex=False)]
 
     sweep_kind = str(state.get("sweep_kind", "") or "").strip()
     if sweep_kind and sweep_kind != "(all)" and "sweep_kind" in df.columns:
@@ -358,7 +359,7 @@ def apply_run_filters(df_all: pd.DataFrame, state: dict) -> pd.DataFrame:
         tags_series = df["tags"].astype(str).str.lower()
         mask = pd.Series(False, index=df.index)
         for tag in tags_any:
-            mask = mask | tags_series.str.contains(tag, na=False)
+            mask = mask | tags_series.str.contains(tag, na=False, regex=False)
         df = df[mask]
 
     search = str(state.get("search", "") or "").strip().lower()
@@ -366,7 +367,7 @@ def apply_run_filters(df_all: pd.DataFrame, state: dict) -> pd.DataFrame:
         mask = pd.Series(False, index=df.index)
         for col in ["run_id", "run_name", "notes", "optimizer", "parameterization", "tags", "group_id", "seed_group_id"]:
             if col in df.columns:
-                mask = mask | df[col].astype(str).str.lower().str.contains(search, na=False)
+                mask = mask | df[col].astype(str).str.lower().str.contains(search, na=False, regex=False)
         df = df[mask]
 
     status_vals = [x for x in _list_like(state.get("status")) if str(x)]

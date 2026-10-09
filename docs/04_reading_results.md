@@ -23,7 +23,9 @@ A run result is useful for checking whether training behaved normally and whethe
 
 A sweep result shows how outputs changed across a group of related runs.
 
-Use **Results → Sweeps** to inspect how metrics vary across the fields selected in the sweep. This is the main place to read optimizer effects, learning-rate effects, initialization effects, parameterization effects, regularization effects, or seed effects.
+Use **Results → Sweeps** to inspect how metrics vary across the fields selected in the sweep. This is the main place to read optimizer effects, learning-rate effects, initialization effects, parameterization effects, training-budget effects, regularization effects, or seed effects.
+
+A 1D sweep is shown as an aggregate curve over the varied field. A full-grid 2D sweep is shown as a heatmap, where each cell summarizes runs for one pair of axis values. A 2D heatmap is an interaction view: it helps answer whether the effect of one setting depends on the value of another setting.
 
 A sweep result should make the varied fields visible. If you cannot tell what changed across the runs, the sweep is hard to interpret.
 
@@ -48,6 +50,8 @@ Use them to see whether a run converged, plateaued, diverged, oscillated, or sto
 
 Curves are especially useful when final values hide important differences. Two runs can end with similar loss while following different training paths.
 
+The app shows one primary trajectory metric by default so the plot stays readable. Additional trajectory metrics are available under **More trajectory metrics** and are plotted separately rather than all being overlaid at once. Compare uses the same idea: one shared trajectory metric is shown first, and optional extra shared metrics can be expanded when needed.
+
 ## Comparing conditions
 
 When comparing selected runs, focus first on the intended difference.
@@ -61,6 +65,8 @@ Ask:
 - Are differences consistent across seeds?
 
 The result should be read in the context of the experiment design. A metric difference is more meaningful when the compared runs differ only in the intended way.
+
+For two selected runs, the Compare page can audit the expected change. The default **Auto-detect** option works when the runs have one clear intended difference. If the audit reports secondary confounds, inspect the configuration diff before interpreting the comparison as a single-factor result.
 
 ## Seeds and variability
 
@@ -79,6 +85,8 @@ A warning may indicate that a run diverged, stopped early, produced invalid valu
 Do not treat failed or warned runs as normal rows unless the warning has been checked.
 
 For sweeps, failed runs can also reveal useful information. A condition that frequently fails may be an important part of the result.
+
+For 2D sweeps, also check whether entire heatmap rows or columns are missing or failed. A heatmap cell only summarizes the runs that actually completed for that pair of axis values.
 
 ## Exports
 

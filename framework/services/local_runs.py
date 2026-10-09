@@ -9,6 +9,8 @@ from typing import Any
 
 import pandas as pd
 
+from framework.services.serialization import json_dumps
+
 from framework.storage.local import read_run_header
 from framework.core.matrix_completion_metric_contract import (
     matrix_completion_final_metrics,
@@ -49,6 +51,12 @@ DEFAULT_MATCH_FIELDS = [
     "init_type",
     "init_scale",
     "optimizer",
+    "batch_size",
+    "momentum_beta",
+    "adam_beta1",
+    "adam_beta2",
+    "adam_eps",
+    "preconditioner_eps",
     "lr_schedule_type",
     "lr_decay_gamma",
     "lr_step_size",
@@ -65,7 +73,12 @@ DEFAULT_MATCH_FIELDS = [
 ]
 
 MATCH_AXIS_FIELDS: dict[str, list[str]] = {
-    "optimizer": ["optimizer", "batch_size", "momentum_beta", "adam_beta1", "adam_beta2", "adam_eps", "preconditioner_eps", "lr_schedule_type", "lr_decay_gamma", "lr_step_size", "lr_min"],
+    "learning_rate": ["lr"],
+    "learning_rate_schedule": ["lr_schedule_type", "lr_decay_gamma", "lr_step_size", "lr_min"],
+    "training_budget": ["steps", "grad_norm_tol", "objective_tol"],
+    "random_seed": ["seed"],
+    "batch_size": ["batch_size"],
+    "optimizer": ["optimizer", "momentum_beta", "adam_beta1", "adam_beta2", "adam_eps", "preconditioner_eps"],
     "parameterization": ["parameterization"],
     "explicit_regularization": ["explicit_reg_type", "explicit_reg_strength"],
     "init_scale": ["init_scale"],
@@ -195,6 +208,28 @@ SEED_GROUP_FIELDS = [
 ]
 
 
+NON_EXPERIMENTAL_CONFIG_FIELDS = {
+    # Identifiers and UI bookkeeping are useful for provenance, but they are not
+    # experimental factors and should not make a controlled comparison look
+    # confounded. They remain visible in raw technical metadata.
+    "seed_group_id",
+    "group_id",
+    "sweep_group_id",
+    "run_name",
+    "notes",
+    "tags",
+    "favorite",
+}
+
+
+def _experimental_config_keys(configs: list[dict]) -> list[str]:
+    return sorted(
+        key
+        for key in set().union(*[cfg.keys() for cfg in configs])
+        if key not in NON_EXPERIMENTAL_CONFIG_FIELDS
+    )
+
+
 def x_col(df: pd.DataFrame) -> str:
     if "step" in df.columns:
         return "step"
@@ -212,7 +247,7 @@ def list_run_dirs(runs_dir: Path) -> list[Path]:
 def config_diff(configs: list[dict]) -> pd.DataFrame:
     if not configs:
         return pd.DataFrame()
-    keys = sorted(set().union(*[cfg.keys() for cfg in configs]))
+    keys = _experimental_config_keys(configs)
     varying = []
     for k in keys:
         vals = [cfg.get(k, None) for cfg in configs]
@@ -336,7 +371,7 @@ def matched_candidates_table(reference: dict[str, Any], matches: list[dict[str, 
 def matched_config_diff(reference_cfg: dict[str, Any], candidate_cfg: dict[str, Any], varying_axis: str) -> pd.DataFrame:
     rows = []
     allowed = set(MATCH_AXIS_FIELDS[varying_axis])
-    keys = sorted(set(reference_cfg.keys()) | set(candidate_cfg.keys()))
+    keys = _experimental_config_keys([reference_cfg, candidate_cfg])
     for field in keys:
         ref_val = reference_cfg.get(field, None)
         cand_val = candidate_cfg.get(field, None)
@@ -408,7 +443,7 @@ def _seed_group_key_payload(cfg: dict[str, Any]) -> dict[str, Any]:
 
 
 def _short_hash(obj: dict[str, Any]) -> str:
-    payload = json.dumps(obj, sort_keys=True).encode("utf-8")
+    payload = json_dumps(obj, sort_keys=True).encode("utf-8")
     return hashlib.sha256(payload).hexdigest()[:12]
 
 

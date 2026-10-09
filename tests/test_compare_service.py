@@ -152,6 +152,7 @@ def test_compare_service_builds_paired_seed_group_deltas_and_missing_seed_summar
     assert result.pairing_summary["candidate_only_seed_count"] == 1
     assert list(result.pairing_df["pairing_status"]) == ["paired", "candidate_missing", "reference_missing"]
     assert set(["seed", "metric", "delta"]).issubset(result.per_seed_delta_df.columns)
+    assert "final_loss" not in set(result.delta_summary_df["metric"])
     summary_row = result.delta_summary_df.loc[result.delta_summary_df["metric"] == "final_objective"].iloc[0]
     assert int(summary_row["paired_seed_count"]) == 1
     assert float(summary_row["mean_abs_delta"]) == 0.0

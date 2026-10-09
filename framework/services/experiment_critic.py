@@ -105,6 +105,12 @@ def audit_sweep_request(request: SweepRequest) -> CriticReport:
     report = CriticReport()
     report.extend(audit_new_run_request(request.base_request).warnings)
 
+    if len(tuple(request.fields)) > 1:
+        report.add(
+            "interaction_sweep",
+            "Multi-axis sweeps are an interaction study. Interpret single-factor trends cautiously because effects may depend on the other swept axes.",
+        )
+
     seen: set[str] = set()
     for field in request.fields:
         values = list(request.values.get(field, []))

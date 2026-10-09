@@ -9,6 +9,7 @@ from typing import Any, Mapping, Sequence
 import pandas as pd
 
 from framework.core.models import RunSpec, VALID_RUN_STATUSES
+from framework.services.serialization import json_dumps
 
 
 CONFIG_FILENAME = "config.json"
@@ -89,7 +90,7 @@ class RunIntegrityReport:
 
 
 def _short_hash(obj: Mapping[str, Any]) -> str:
-    payload = json.dumps(dict(obj), sort_keys=True).encode("utf-8")
+    payload = json_dumps(dict(obj), sort_keys=True).encode("utf-8")
     return hashlib.sha256(payload).hexdigest()[:10]
 
 

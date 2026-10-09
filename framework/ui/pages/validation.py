@@ -4,6 +4,7 @@ import io
 import pandas as pd
 import streamlit as st
 
+from framework.ui.cards import render_value_columns
 from framework.ui.page_services import ValidationPageService
 
 _RESULT_KEY = "validation_last_result"
@@ -79,11 +80,14 @@ def render_validation_page(service: ValidationPageService) -> None:
     summary = service.build_suite_summary(result)
     st.divider()
     st.subheader("Summary")
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Status", _status_badge(str(summary["overall_status"])))
-    c2.metric("Checks passed", f"{summary['passed_checks']}/{summary['total_checks']}")
-    c3.metric("Saved runs", int(summary["saved_runs"]))
-    c4.metric("Failed runs", int(summary["failed_runs"]))
+    render_value_columns(
+        [
+            ("Status", _status_badge(str(summary["overall_status"]))),
+            ("Checks passed", f"{summary['passed_checks']}/{summary['total_checks']}"),
+            ("Saved runs", int(summary["saved_runs"])),
+            ("Failed runs", int(summary["failed_runs"])),
+        ]
+    )
 
     checks_frame = service.build_checks_frame(result)
     st.markdown("#### Checks")

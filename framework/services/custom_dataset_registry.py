@@ -7,6 +7,7 @@ import json
 from typing import Any
 
 from framework.core.datasets.custom_matrix_completion import custom_triplets_csv_stats
+from framework.services.serialization import json_dumps
 from framework.services.data_sources import (
     DEFAULT_CUSTOM_TRIPLETS_PREPROCESSING_VERSION,
     DEFAULT_CUSTOM_TRIPLETS_SPLIT_VERSION,
@@ -95,7 +96,7 @@ class LocalCustomDatasetRegistry:
             preprocessing_version=DEFAULT_CUSTOM_TRIPLETS_PREPROCESSING_VERSION,
             stats=dict(stats),
         )
-        self._manifest_path(dataset_id).write_text(json.dumps(record.to_dict(), indent=2), encoding="utf-8")
+        self._manifest_path(dataset_id).write_text(json_dumps(record.to_dict(), indent=2), encoding="utf-8")
         return record
 
     def resolve_triplets_csv(self, *, dataset_id: str = "", source_path: str = "") -> CustomDatasetRecord:

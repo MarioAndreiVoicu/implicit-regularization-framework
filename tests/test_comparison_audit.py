@@ -106,7 +106,7 @@ def test_audit_run_pair_uses_protocol_to_detect_wrong_axis_and_seed_policy():
     )
 
     assert audit.status == "protocol_conflict"
-    assert audit.protocol_varying_axis == "lr"
+    assert audit.protocol_varying_axis == "learning_rate"
     assert any("selected varying axis 'init_scale'" in item for item in audit.protocol_conflicts)
     assert any("paired seed policy requires matched seeds" in item for item in audit.protocol_conflicts)
 
@@ -133,3 +133,47 @@ def test_comparison_audit_details_table_contains_richer_summary_fields():
         "seed alignment",
         "paired seed expected",
     ]
+
+
+def test_audit_run_pair_supports_learning_rate_axis_and_protocol_alias():
+    candidate_cfg = {**BASE_CFG, "lr": 5e-3}
+
+    audit = audit_run_pair(
+        BASE_CFG,
+        candidate_cfg,
+        "learning_rate",
+        reference_metadata=_protocol_meta(manipulated_factor="lr", held_fixed=("steps",)),
+        candidate_metadata=_protocol_meta(manipulated_factor="lr", held_fixed=("steps",)),
+    )
+
+    assert audit.status == "valid_single_factor"
+    assert audit.allowed_differences == ("lr",)
+    assert audit.protocol_varying_axis == "learning_rate"
+    assert audit.unexpected_differences == ()
+
+
+
+
+def test_audit_ignores_provenance_group_ids_for_learning_rate_change():
+    reference_cfg = {**BASE_CFG, "seed_group_id": "seedgrp_ref", "group_id": "sweep_ref", "sweep_group_id": "sweep_a"}
+    candidate_cfg = {**BASE_CFG, "lr": 5e-3, "seed_group_id": "seedgrp_candidate", "group_id": "sweep_candidate", "sweep_group_id": "sweep_b"}
+
+    audit = audit_run_pair(reference_cfg, candidate_cfg, "learning_rate")
+
+    assert audit.status == "valid_single_factor"
+    assert audit.allowed_differences == ("lr",)
+    assert "seed_group_id" not in audit.secondary_confounds
+    assert "group_id" not in audit.secondary_confounds
+    assert "sweep_group_id" not in audit.secondary_confounds
+    assert audit.unexpected_differences == ()
+
+
+def test_audit_run_pair_supports_training_budget_schedule_batch_and_seed_axes():
+    assert audit_run_pair(BASE_CFG, {**BASE_CFG, "steps": 200}, "training_budget").status == "valid_single_factor"
+    assert audit_run_pair(BASE_CFG, {**BASE_CFG, "lr_schedule_type": "cosine", "lr_min": 1e-5}, "learning_rate_schedule").status == "valid_single_factor"
+    assert audit_run_pair(BASE_CFG, {**BASE_CFG, "batch_size": 16}, "batch_size").status == "valid_single_factor"
+
+    seed_audit = audit_run_pair(BASE_CFG, {**BASE_CFG, "seed": 3}, "random_seed")
+    assert seed_audit.status == "valid_single_factor"
+    assert seed_audit.allowed_differences == ("seed",)
+    assert seed_audit.seed_alignment == "different"

@@ -1,148 +1,76 @@
 # Implicit Regularization Framework
 
-A Streamlit-based local framework for running experiments on implicit regularization in PSD sensing and matrix completion.
+**Experimental code accompanying the 2026 Bachelor's thesis _Implicit Bias in Overparameterized Learning_.**
 
-## Project Overview
+This repository is a local research prototype for exploring **solution selection in overparameterized learning**. It combines configurable numerical experiments in matrix recovery with tools for comparing optimization regimes. It is not a production ML library.
 
-This project provides a local app for creating, running, inspecting, and comparing controlled implicit-regularization experiments.
+## Research question
 
-The framework is centered around two problem families:
+When a learning problem admits many solutions with similarly low or zero training loss, the objective alone does not explain **which solution training selects**. Parameterization, initialization, and optimization dynamics may favor solutions with different structural properties, even without an explicit regularization term.
 
-- **PSD sensing**
-- **Matrix completion**
+The thesis studies this question primarily through **matrix factorization**, a setting in which the relationship between optimization dynamics and implicit regularization can be analyzed mathematically. In particular, it examines a restricted commuting-measurement result concerning nuclear-norm minimization under factorized gradient flow, and the conditions and limitations of that result.
 
-It supports single runs, sweeps, result inspection, custom datasets, artifact export, and headless execution.
+**The purpose of the code is experimental:** to vary relevant factors, inspect the resulting training trajectories and solution properties, and compare outcomes under controlled configurations. The mathematical analysis is developed in the accompanying Bachelor's thesis, while this repository provides the experimental framework used to investigate the problem computationally.
 
-Each run stores its configuration, metrics, metadata, warnings, and generated artifacts so that results can be inspected later.
+## What the framework supports
 
-## Features
+- **Problem settings:** positive-semidefinite (PSD) matrix sensing and matrix completion, including synthetic cases and supported custom matrix-completion datasets.
+- **Experimental controls:** parameterization, initialization, optimizer, learning rate and schedule, seed, training budget, and explicit regularization settings.
+- **Experiment design:** individual runs, one-dimensional sweeps, and two-dimensional full-grid sweeps.
+- **Analysis:** training histories, reconstruction metrics, selected structural metrics, saved configurations, comparisons of runs, and exports for further analysis.
+- **Execution:** an interactive Streamlit interface and headless execution from JSON requests.
 
-- Single-run experiment execution.
-- Sweep execution over selected configuration fields.
-- PSD sensing experiments.
-- Matrix completion experiments.
-- Synthetic matrix-completion datasets.
-- Registered custom matrix-completion datasets.
-- Experiments over optimizer, learning rate, initialization, parameterization, seed, and regularization settings.
-- Results page for inspecting completed runs and sweeps.
-- Compare page for selected individual runs.
-- Saved metric histories and final summaries.
-- Run metadata, warnings, stopping reasons, and provenance records.
-- Export support for plots, summaries, configurations, and artifacts.
-- Built-in documentation for theory, workflow, fields, metrics, reproducibility, and limitations.
-- Headless execution from JSON request files.
+A typical experiment compares configurations that fit the observed measurements, then examines whether their recovered solutions differ in properties such as nuclear norm, rank-related metrics, or reconstruction error. The interpretation depends on the specific problem, parameterization, and numerical regime.
 
-## App Pages
-
-### Experiments
-
-Used to create and launch new runs or sweeps.
-
-This page contains the main experiment configuration controls: problem family, data source, model settings, optimizer settings, training settings, seed settings, measurement options, and sweep fields.
-
-### Results
-
-Used to inspect completed runs and sweeps.
-
-This page shows metrics, plots, artifacts, configurations, warnings, sweep summaries, and export options.
-
-### Compare
-
-Used to compare selected individual runs.
-
-Compare is run-level only. Sweep-level inspection is done in Results.
-
-### Datasets
-
-Used to inspect available datasets and register custom matrix-completion datasets.
-
-### Validation
-
-Used to run framework checks for selected experiment paths.
-
-### Docs / Theory
-
-Contains the in-app documentation pages:
-
-- Start Here
-- Experiment Design
-- Core Theory
-- Workflow
-- Reading Results
-- Fields & Metrics Reference
-- Reproducibility & Provenance
-- Limitations
-
-## Installation
+## Quick start
 
 Python 3.10 or newer is recommended.
 
-Create a virtual environment:
-
 ```bash
 python -m venv .venv
-```
-
-Activate it on macOS/Linux:
-
-```bash
-source .venv/bin/activate
-```
-
-Activate it on Windows PowerShell:
-
-```powershell
-.venv\Scripts\Activate.ps1
-```
-
-Install dependencies:
-
-```bash
+source .venv/bin/activate  # Windows PowerShell: .venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-```
-
-## Running the App
-
-Start the Streamlit app with:
-
-```bash
 streamlit run app.py
 ```
 
-The app writes local runtime outputs to directories such as:
-
-```text
-runs/
-sweeps/
-datasets_registry/
-```
-
-These directories are generated locally and are ignored by git.
-
-## Headless Usage
-
-Run a single experiment request:
-
-```bash
-python run_headless.py new-run path/to/request.json
-```
-
-Run a sweep request:
-
-```bash
-python run_headless.py sweep path/to/sweep_request.json
-```
-
-Run the demo:
+A small command-line demo is also available:
 
 ```bash
 python demo_run.py
 ```
 
-## Notes
+For headless requests, use the included request format and documentation:
 
-This project runs experiments locally. Cloud deployment is planned but not currently the main execution mode.
+```bash
+python run_headless.py new-run path/to/request.json
+python run_headless.py sweep path/to/sweep_request.json
+```
 
-The built-in plots are selected views of the saved metrics. For additional analysis, use the exported metric histories, summaries, configurations, and artifacts outside the app.
+Run the test suite with:
 
-Exact reproducibility can depend on device, dtype, library versions, and hardware behavior. The framework records run metadata to make those details easier to inspect.
+```bash
+python -m pytest -q
+```
+
+Experiments create local files in `runs/`, `sweeps/`, and `datasets_registry/`. These are excluded from version control. A small `custom_dataset_example.csv` is provided as sample input.
+
+## Using the app
+
+- **Experiments:** configure individual runs and parameter sweeps.
+- **Results:** inspect runs, sweeps, charts, metrics, and saved artifacts.
+- **Compare:** compare selected individual runs under specified configurations.
+- **Data Sources:** inspect supported external or custom matrix-completion data sources.
+- **Validation:** run selected checks on experiment paths.
+- **Docs / Theory:** read experimental design guidance, core theory, metric definitions, and limitations.
+
+## Scope and limitations
+
+The framework focuses on controlled experiments in PSD matrix sensing and matrix completion. Results depend on the chosen data, parameterization, initialization, optimizer, numerical precision, and stopping conditions.
+
+Experiments complement the mathematical analysis in the thesis; observations in specific numerical settings should not be interpreted as general theoretical guarantees. The framework records experiment configurations and provenance to support reproducibility, although results may vary across computational environments.
+
+For further context, see [`docs/02_core_theory.md`](docs/02_core_theory.md), [`docs/06_reproducibility_provenance.md`](docs/06_reproducibility_provenance.md), and [`docs/07_limitations.md`](docs/07_limitations.md).
+
+## Academic context
+
+This project was developed as the practical component of the Bachelor's thesis **_Implicit Bias in Overparameterized Learning_** (B.Sc. Computer Science, Transilvania University of Brașov, 2026). The thesis investigates implicit regularization through mathematical analysis of matrix factorization and an accompanying configurable experimental framework.

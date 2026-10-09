@@ -12,6 +12,7 @@ import pandas as pd
 from framework.core.models import RunResult
 from framework.services.data_sources import get_data_source_default_provenance
 from framework.core.runtime_info import RUNTIME_PROVENANCE_SCHEMA_VERSION, missing_runtime_snapshot
+from framework.services.serialization import json_dumps
 from framework.services.run_integrity import (
     validate_loaded_run_payload,
     validate_run_folder_structure,
@@ -37,7 +38,7 @@ RUN_REQUIRED_FILENAMES = (
 
 
 def _short_hash(obj: dict) -> str:
-    payload = json.dumps(obj, sort_keys=True).encode("utf-8")
+    payload = json_dumps(obj, sort_keys=True).encode("utf-8")
     return hashlib.sha256(payload).hexdigest()[:10]
 
 
@@ -184,9 +185,9 @@ def save_run(result: RunResult, runs_dir: str = "runs", metadata_overrides: dict
     folder.mkdir(parents=True, exist_ok=False)
 
     paths = _file_paths(folder)
-    paths["config"].write_text(json.dumps(cfg, indent=2), encoding="utf-8")
+    paths["config"].write_text(json_dumps(cfg, indent=2), encoding="utf-8")
     pd.DataFrame(result.metrics).to_csv(paths["metrics"], index=False)
-    paths["summary"].write_text(json.dumps(result.summary, indent=2), encoding="utf-8")
+    paths["summary"].write_text(json_dumps(result.summary, indent=2), encoding="utf-8")
 
     metadata = result.metadata_dict(saved_at=ts, run_id=folder_name)
     metadata.update(dict(metadata_overrides or {}))
@@ -194,10 +195,10 @@ def save_run(result: RunResult, runs_dir: str = "runs", metadata_overrides: dict
     metadata["config_hash"] = run_hash
     metadata["metrics_rows"] = int(len(next(iter(result.metrics.values()))) if result.metrics else 0)
     metadata["artifact_keys"] = sorted(str(k) for k in result.artifacts.keys())
-    paths["metadata"].write_text(json.dumps(metadata, indent=2), encoding="utf-8")
+    paths["metadata"].write_text(json_dumps(metadata, indent=2), encoding="utf-8")
 
     manifest = _artifact_manifest(result.artifacts)
-    paths["artifact_manifest"].write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+    paths["artifact_manifest"].write_text(json_dumps(manifest, indent=2), encoding="utf-8")
     np.savez_compressed(paths["artifacts"], **result.artifacts)
     return str(folder)
 

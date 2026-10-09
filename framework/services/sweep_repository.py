@@ -8,6 +8,7 @@ from typing import Any, Protocol
 import pandas as pd
 
 from framework.services.run_repository import ReadRunRepository
+from framework.services.serialization import json_dumps
 
 
 class SweepRepository(Protocol):
@@ -38,7 +39,7 @@ class LocalSweepRepository:
     def save_metadata(self, metadata: dict[str, Any]) -> None:
         group_id = str(metadata['group_id'])
         path = self.sweeps_dir / f"{group_id}.json"
-        path.write_text(json.dumps(metadata, indent=2), encoding='utf-8')
+        path.write_text(json_dumps(metadata, indent=2), encoding='utf-8')
 
     def load_metadata(self, group_id: str) -> dict[str, Any] | None:
         path = self.sweeps_dir / f"{group_id}.json"
